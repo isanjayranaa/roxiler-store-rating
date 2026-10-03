@@ -113,18 +113,41 @@ export const getUsers = async (req, res) => {
         } = req.query;
 
         const allowedSortFields = {
-            name: "name",
-            email: "email",
-            address: "address",
-            role: "role"
+            name: "u.name",
+            email: "u.email",
+            address: "u.address",
+            role: "u.role",
+            rating: "rating"
         };
 
-        const sortField = allowedSortFields[sortBy] || "name";
-        const sortOrder = order.toLowerCase() === "desc" ? "DESC" : "ASC";
+        const sortField = allowedSortFields[sortBy] || "u.name";
+
+        const sortOrder =
+            order.toLowerCase() === "desc"
+                ? "DESC"
+                : "ASC";
 
         let query = `
-            SELECT id, name, email, address, role
-            FROM users
+            SELECT
+                u.id,
+                u.name,
+                u.email,
+                u.address,
+                u.role,
+
+                CASE
+                    WHEN u.role = 'STORE_OWNER'
+                    THEN COALESCE(AVG(r.rating), 0)
+                    ELSE 0
+                END AS rating
+
+            FROM users u
+
+            LEFT JOIN stores s
+                ON s.owner_id = u.id
+
+            LEFT JOIN ratings r
+                ON r.store_id = s.id
         `;
 
         const conditions = [];
@@ -132,29 +155,52 @@ export const getUsers = async (req, res) => {
 
         if (name) {
             values.push(`%${name}%`);
-            conditions.push(`name ILIKE $${values.length}`);
+
+            conditions.push(
+                `u.name ILIKE $${values.length}`
+            );
         }
 
         if (email) {
             values.push(`%${email}%`);
-            conditions.push(`email ILIKE $${values.length}`);
+
+            conditions.push(
+                `u.email ILIKE $${values.length}`
+            );
         }
 
         if (address) {
             values.push(`%${address}%`);
-            conditions.push(`address ILIKE $${values.length}`);
+
+            conditions.push(
+                `u.address ILIKE $${values.length}`
+            );
         }
 
         if (role) {
             values.push(role);
-            conditions.push(`role = $${values.length}`);
+
+            conditions.push(
+                `u.role = $${values.length}`
+            );
         }
 
         if (conditions.length > 0) {
-            query += ` WHERE ${conditions.join(" AND ")}`;
+            query += `
+                WHERE ${conditions.join(" AND ")}
+            `;
         }
 
-        query += ` ORDER BY ${sortField} ${sortOrder}`;
+        query += `
+            GROUP BY
+                u.id,
+                u.name,
+                u.email,
+                u.address,
+                u.role
+
+            ORDER BY ${sortField} ${sortOrder}
+        `;
 
         const result = await pool.query(query, values);
 

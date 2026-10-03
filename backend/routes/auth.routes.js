@@ -1,5 +1,5 @@
 import express from "express";
-import { changePassword, login, logout, register } from "../controllers/auth.controller.js";
+import { changePassword, getMe, login, logout, register } from "../controllers/auth.controller.js";
 import { isAuthenticated } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
@@ -11,6 +11,11 @@ router.put(
     "/change-password",
     isAuthenticated,
     changePassword
+);
+router.get(
+    "/me",
+    isAuthenticated,
+    getMe
 );
 
 export default router;

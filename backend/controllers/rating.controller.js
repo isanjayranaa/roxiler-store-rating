@@ -124,3 +124,50 @@ export const updateRating = async (req, res) => {
         });
     }
 };
+
+export const getMyRatings = async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT
+                r.id,
+                r.rating,
+                r.created_at,
+                r.updated_at,
+                s.id AS store_id,
+                s.name AS store_name,
+                s.address AS store_address,
+                s.image_url,
+                COALESCE(AVG(all_ratings.rating), 0) AS overall_rating
+             FROM ratings r
+             INNER JOIN stores s
+                ON r.store_id = s.id
+             LEFT JOIN ratings all_ratings
+                ON s.id = all_ratings.store_id
+             WHERE r.user_id = $1
+             GROUP BY
+                r.id,
+                r.rating,
+                r.created_at,
+                r.updated_at,
+                s.id,
+                s.name,
+                s.address,
+                s.image_url
+             ORDER BY r.updated_at DESC`,
+            [req.user.id]
+        );
+
+        return res.status(200).json({
+            success: true,
+            ratings: result.rows
+        });
+
+    } catch (error) {
+        console.error("Get My Ratings Error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+};

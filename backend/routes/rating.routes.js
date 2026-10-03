@@ -1,6 +1,7 @@
 import express from "express";
 
 import {
+    getMyRatings,
     submitRating,
     updateRating
 } from "../controllers/rating.controller.js";
@@ -22,6 +23,13 @@ router.put(
     isAuthenticated,
     authorizeRoles("USER"),
     updateRating
+);
+
+router.get(
+    "/my-ratings",
+    isAuthenticated,
+    authorizeRoles("USER"),
+    getMyRatings
 );
 
 export default router;

@@ -205,7 +205,7 @@ export const changePassword = async (req, res) => {
         if (!oldPassword) {
             return res.status(400).json({
                 success: false,
-                message: "Old password is required"
+                message: "Current password is required"
             });
         }
 
@@ -256,6 +256,37 @@ export const changePassword = async (req, res) => {
 
     } catch (error) {
         console.error("Change Password Error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+};
+
+export const getMe = async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT id, name, email, address, role
+             FROM users
+             WHERE id = $1`,
+            [req.user.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            user: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error("Get Me Error:", error);
 
         return res.status(500).json({
             success: false,
